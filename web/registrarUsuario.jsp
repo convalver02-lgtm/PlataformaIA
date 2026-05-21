@@ -33,7 +33,7 @@
 
     // LIMPIAR ESPACIOS
     nombre = nombre.trim();
-    correo = correo.trim();
+    correo = correo.trim().toLowerCase();
     contrasena = contrasena.trim();
     confirmar = confirmar.trim();
 
@@ -60,11 +60,32 @@
         return;
     }
 
-    // PROTECCIÓN BÁSICA XSS
-    if(nombre.contains("<") ||
-       nombre.contains(">") ||
-       correo.contains("<") ||
-       correo.contains(">")){
+    // VALIDAR LONGITUD MÍNIMA
+    if(nombre.length() < 3 ||
+       contrasena.length() < 6){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=minimo");
+
+        return;
+    }
+
+    // VALIDAR FORMATO CORREO
+    if(!correo.matches(
+       "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=correo");
+
+        return;
+    }
+
+    // PROTECCIÓN XSS
+    String patronXSS =
+    "(<script>|</script>|<|>|javascript:|onerror=|onload=|alert\\()";
+
+    if(nombre.matches("(?i).*" + patronXSS + ".*") ||
+       correo.matches("(?i).*" + patronXSS + ".*")){
 
         response.sendRedirect(
         "rGeneral.jsp?error=xss");
@@ -72,7 +93,7 @@
         return;
     }
 
-    // VALIDAR PASSWORDS
+    // VALIDAR CONTRASEÑAS
     if(!contrasena.equals(confirmar)){
 
         response.sendRedirect(
@@ -81,17 +102,35 @@
         return;
     }
 
+    // VALIDAR FUERZA DE CONTRASEÑA
+    boolean tieneMayuscula =
+    contrasena.matches(".*[A-Z].*");
+
+    boolean tieneNumero =
+    contrasena.matches(".*[0-9].*");
+
+    if(!tieneMayuscula || !tieneNumero){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=passwordsegura");
+
+        return;
+    }
+
+    PreparedStatement psCheck = null;
+    PreparedStatement ps = null;
+    ResultSet rsCheck = null;
+
     try{
 
-        // VALIDAR EXISTENCIA
-        PreparedStatement psCheck =
+        // VERIFICAR EXISTENCIA DE CORREO
+        psCheck =
         conexion.prepareStatement(
         "SELECT id_usuario FROM usuarios WHERE correo=?");
 
         psCheck.setString(1, correo);
 
-        ResultSet rsCheck =
-        psCheck.executeQuery();
+        rsCheck = psCheck.executeQuery();
 
         if(rsCheck.next()){
 
@@ -101,36 +140,69 @@
             return;
         }
 
-        rsCheck.close();
-        psCheck.close();
+        // GENERAR HASH BCRYPT
+        String passwordHash =
+        BCrypt.hashpw(
+        contrasena,
+        BCrypt.gensalt(12));
 
-        // INSERTAR
-        PreparedStatement ps =
+        // INSERTAR USUARIO
+        ps =
         conexion.prepareStatement(
-        "INSERT INTO usuarios(nombre, correo, contrasena, rol) " +
-        "VALUES(?, ?, ?, 'ESTUDIANTE')"
+        "INSERT INTO usuarios " +
+        "(nombre, correo, contrasena, rol) " +
+        "VALUES (?, ?, ?, 'ESTUDIANTE')"
         );
 
         ps.setString(1, nombre);
         ps.setString(2, correo);
-
-        // BCRYPT
-        
-        String passwordHash =
-        BCrypt.hashpw(contrasena, BCrypt.gensalt());
-
         ps.setString(3, passwordHash);
 
+        int filas =
         ps.executeUpdate();
 
-        ps.close();
+        if(filas > 0){
 
-        response.sendRedirect(
-        "login.jsp?msg=registrado");
+            response.sendRedirect(
+            "login.jsp?msg=registrado");
+
+        } else {
+
+            response.sendRedirect(
+            "rGeneral.jsp?error=general");
+        }
 
     } catch(Exception e){
 
+        e.printStackTrace();
+
         response.sendRedirect(
         "rGeneral.jsp?error=general");
+
+    } finally {
+
+        try{
+            if(rsCheck != null){
+                rsCheck.close();
+            }
+        } catch(Exception ex){}
+
+        try{
+            if(psCheck != null){
+                psCheck.close();
+            }
+        } catch(Exception ex){}
+
+        try{
+            if(ps != null){
+                ps.close();
+            }
+        } catch(Exception ex){}
+
+        try{
+            if(conexion != null){
+                conexion.close();
+            }
+        } catch(Exception ex){}
     }
 %>

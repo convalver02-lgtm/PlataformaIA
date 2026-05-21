@@ -14,8 +14,10 @@
 
         if ("ESTUDIANTE".equalsIgnoreCase(rol)) {
             response.sendRedirect("alumno/panelAlumno.jsp");
+
         } else if ("INSTRUCTOR".equalsIgnoreCase(rol)) {
             response.sendRedirect("instructor/panelInstructor.jsp");
+
         } else if ("ADMIN".equalsIgnoreCase(rol)) {
             response.sendRedirect("admin/panelAdmin.jsp");
         }
@@ -26,37 +28,56 @@
     String error = request.getParameter("error");
     String msg = request.getParameter("msg");
 
+    // CONSERVAR DATOS
     String nombre = request.getParameter("nombre") != null
             ? request.getParameter("nombre")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
             : "";
 
     String correo = request.getParameter("correo") != null
             ? request.getParameter("correo")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
             : "";
 %>
 
 <!DOCTYPE html>
 <html>
+
 <head>
 
     <title>Registrarme - Plataforma IA</title>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-    <link rel="icon" type="image/png" href="img/logoicono.png">
+    <link rel="icon"
+          type="image/png"
+          href="img/logoicono.png">
 
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500,700"
+          rel="stylesheet">
 
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/font-awesome.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet"
+          href="css/bootstrap.min.css">
+
+    <link rel="stylesheet"
+          href="css/font-awesome.min.css">
+
+    <link rel="stylesheet"
+          href="css/style.css">
 
     <style>
 
         body{
-            background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+            background: linear-gradient(to bottom right,
+            #f8f9fa,
+            #e9ecef);
+
             min-height:100vh;
+
             display:flex;
             flex-direction:column;
         }
@@ -66,37 +87,79 @@
         }
 
         .register-container{
+
             background:white;
+
             padding:50px;
+
             border-radius:20px;
+
             box-shadow:0 15px 40px rgba(0,0,0,0.15);
+
             max-width:500px;
+
             margin:60px auto;
         }
 
         .btn-register{
+
             background-color:#006299;
+
             color:white;
+
             padding:14px 50px;
+
             font-size:18px;
+
             border-radius:40px;
+
             width:100%;
         }
 
         .btn-register:hover{
+
             color:white;
+
             opacity:0.9;
         }
 
         .xss-error{
+
             color:red;
+
             font-weight:bold;
+
             margin-top:8px;
+
             display:none;
         }
 
         .input-error{
+
             border:2px solid red !important;
+        }
+
+        .contador{
+
+            font-size:12px;
+
+            color:#777;
+
+            margin-top:5px;
+        }
+
+        .password-ok{
+
+            color:green;
+
+            font-size:13px;
+        }
+
+        .password-error{
+
+            color:red;
+
+            font-size:13px;
         }
 
     </style>
@@ -115,21 +178,27 @@
         <div class="alert alert-danger">
 
             <% if("campos".equals(error)){ %>
+
                 Todos los campos son obligatorios.
 
             <% } else if("contrasenas".equals(error)){ %>
+
                 Las contraseñas no coinciden.
 
             <% } else if("existe".equals(error)){ %>
+
                 El correo ya está registrado.
 
             <% } else if("longitud".equals(error)){ %>
+
                 Uno o más campos exceden el límite permitido.
 
             <% } else if("xss".equals(error)){ %>
+
                 Caracteres peligrosos detectados.
 
             <% } else { %>
+
                 Error al registrar usuario.
 
             <% } %>
@@ -141,7 +210,9 @@
     <% if("registrado".equals(msg)){ %>
 
         <div class="alert alert-success">
+
             Registro exitoso. Ya puedes iniciar sesión.
+
         </div>
 
     <% } %>
@@ -154,6 +225,7 @@
 
         <div class="register-container">
 
+            <!-- ENCABEZADO -->
             <div class="text-center">
 
                 <img src="img/logo.png"
@@ -161,11 +233,15 @@
                      style="height:80px; margin-bottom:20px;">
 
                 <h2 style="color:#006299;">
+
                     Crear mi cuenta
+
                 </h2>
 
                 <p>
+
                     Registro de estudiantes
+
                 </p>
 
             </div>
@@ -178,7 +254,7 @@
 
             </div>
 
-            <!-- FORM -->
+            <!-- FORMULARIO -->
             <form action="registrarUsuario.jsp"
                   method="post"
                   id="formRegistro">
@@ -187,8 +263,10 @@
                 <div class="form-group">
 
                     <label>
+
                         Nombre completo
                         <span style="color:red;">*</span>
+
                     </label>
 
                     <input type="text"
@@ -198,8 +276,16 @@
                            required
                            maxlength="100"
                            minlength="3"
+                           autocomplete="off"
                            value="<%= nombre %>"
                            placeholder="Ejemplo: Juan Pérez">
+
+                    <div id="contadorNombre"
+                         class="contador">
+
+                        0 / 100 caracteres
+
+                    </div>
 
                 </div>
 
@@ -207,8 +293,10 @@
                 <div class="form-group">
 
                     <label>
+
                         Correo electrónico
                         <span style="color:red;">*</span>
+
                     </label>
 
                     <input type="email"
@@ -217,34 +305,56 @@
                            class="form-control"
                            required
                            maxlength="100"
+                           autocomplete="off"
                            value="<%= correo %>"
                            placeholder="usuario@correo.com">
 
+                    <div id="contadorCorreo"
+                         class="contador">
+
+                        0 / 100 caracteres
+
+                    </div>
+
                 </div>
 
-                <!-- MENSAJE XSS -->
-                <div id="mensajeXSS" class="xss-error">
-                    ⚠ Entrada potencialmente peligrosa detectada (XSS)
+                <!-- XSS -->
+                <div id="mensajeXSS"
+                     class="xss-error">
+
+                    ⚠ Entrada potencialmente peligrosa detectada.
+
                 </div>
 
                 <!-- PASSWORD -->
                 <div class="form-group">
 
                     <label>
+
                         Contraseña
                         <span style="color:red;">*</span>
+
                     </label>
 
                     <input type="password"
                            name="contrasena"
+                           id="contrasena"
                            class="form-control"
                            required
                            minlength="6"
-                           maxlength="100">
+                           maxlength="100"
+                           autocomplete="new-password">
 
                     <small class="text-muted">
-                        Mínimo 6 caracteres
+
+                        Debe contener:
+                        mayúscula,
+                        número
+                        y carácter especial.
+
                     </small>
+
+                    <div id="mensajePassword"></div>
 
                 </div>
 
@@ -252,19 +362,26 @@
                 <div class="form-group">
 
                     <label>
+
                         Confirmar contraseña
                         <span style="color:red;">*</span>
+
                     </label>
 
                     <input type="password"
                            name="confirmar"
+                           id="confirmar"
                            class="form-control"
                            required
                            minlength="6"
-                           maxlength="100">
+                           maxlength="100"
+                           autocomplete="new-password">
+
+                    <div id="mensajeConfirmacion"></div>
 
                 </div>
 
+                <!-- BOTÓN -->
                 <button type="submit"
                         class="btn btn-register">
 
@@ -292,12 +409,25 @@ document.addEventListener("DOMContentLoaded", function(){
     const correo =
     document.getElementById("correo");
 
-    const mensaje =
+    const contrasena =
+    document.getElementById("contrasena");
+
+    const confirmar =
+    document.getElementById("confirmar");
+
+    const mensajeXSS =
     document.getElementById("mensajeXSS");
+
+    const mensajePassword =
+    document.getElementById("mensajePassword");
+
+    const mensajeConfirmacion =
+    document.getElementById("mensajeConfirmacion");
 
     const formulario =
     document.getElementById("formRegistro");
 
+    // XSS
     function validarXSS(valor){
 
         const patron =
@@ -306,63 +436,146 @@ document.addEventListener("DOMContentLoaded", function(){
         return patron.test(valor);
     }
 
-    function mostrarError(campo){
+    // NOMBRE
+    function validarNombre(valor){
 
-        campo.classList.add("input-error");
+        const patron =
+        /^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$/;
 
-        mensaje.style.display = "block";
+        return patron.test(valor);
     }
 
-    function limpiarError(campo){
+    // PASSWORD SEGURA
+    function validarPassword(password){
 
-        campo.classList.remove("input-error");
+        const patron =
+        /^(?=.*[A-Z])(?=.*[0-9])(?=.*[\W]).{6,}$/;
 
-        if(
-            !validarXSS(nombre.value) &&
-            !validarXSS(correo.value)
-        ){
-            mensaje.style.display = "none";
-        }
+        return patron.test(password);
     }
 
-    nombre.addEventListener("keyup", function(){
+    // CONTADORES
+    nombre.addEventListener("input", function(){
 
-        if(validarXSS(nombre.value)){
+        document.getElementById(
+        "contadorNombre"
+        ).innerHTML =
+        nombre.value.length +
+        " / 100 caracteres";
 
-            mostrarError(nombre);
+    });
+
+    correo.addEventListener("input", function(){
+
+        document.getElementById(
+        "contadorCorreo"
+        ).innerHTML =
+        correo.value.length +
+        " / 100 caracteres";
+
+    });
+
+    // VALIDACIÓN XSS
+    function revisarXSS(campo){
+
+        if(validarXSS(campo.value)){
+
+            campo.classList.add("input-error");
+
+            mensajeXSS.style.display = "block";
 
         } else {
 
-            limpiarError(nombre);
+            campo.classList.remove("input-error");
+
+            if(
+                !validarXSS(nombre.value) &&
+                !validarXSS(correo.value)
+            ){
+
+                mensajeXSS.style.display = "none";
+            }
+        }
+    }
+
+    nombre.addEventListener("input", function(){
+
+        revisarXSS(nombre);
+
+        if(!validarNombre(nombre.value) &&
+           nombre.value.length > 0){
+
+            nombre.classList.add("input-error");
+
         }
     });
 
-    correo.addEventListener("keyup", function(){
+    correo.addEventListener("input", function(){
 
-        if(validarXSS(correo.value)){
+        revisarXSS(correo);
+    });
 
-            mostrarError(correo);
+    // PASSWORD FUERTE
+    contrasena.addEventListener("input", function(){
+
+        if(validarPassword(contrasena.value)){
+
+            mensajePassword.innerHTML =
+            "<span class='password-ok'>✓ Contraseña segura</span>";
+
+            contrasena.classList.remove("input-error");
 
         } else {
 
-            limpiarError(correo);
+            mensajePassword.innerHTML =
+            "<span class='password-error'>Debe incluir mayúscula, número y carácter especial</span>";
+
+            contrasena.classList.add("input-error");
         }
+
     });
 
-    // BLOQUEAR ENVÍO SI HAY XSS
+    // CONFIRMAR PASSWORD
+    confirmar.addEventListener("input", function(){
+
+        if(contrasena.value === confirmar.value){
+
+            mensajeConfirmacion.innerHTML =
+            "<span class='password-ok'>✓ Las contraseñas coinciden</span>";
+
+            confirmar.classList.remove("input-error");
+
+        } else {
+
+            mensajeConfirmacion.innerHTML =
+            "<span class='password-error'>Las contraseñas no coinciden</span>";
+
+            confirmar.classList.add("input-error");
+        }
+
+    });
+
+    // VALIDAR ENVÍO
     formulario.addEventListener("submit", function(e){
 
         if(
+
             validarXSS(nombre.value) ||
-            validarXSS(correo.value)
+            validarXSS(correo.value) ||
+
+            !validarNombre(nombre.value) ||
+
+            !validarPassword(contrasena.value) ||
+
+            contrasena.value !== confirmar.value
+
         ){
 
             e.preventDefault();
 
-            mensaje.style.display = "block";
-
-            alert("Entrada peligrosa detectada.");
-
+            alert(
+            "Corrige los campos marcados antes de continuar."
+            );
         }
 
     });
