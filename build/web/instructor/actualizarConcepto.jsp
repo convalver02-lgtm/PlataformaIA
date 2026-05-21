@@ -5,46 +5,209 @@
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+<%@page import="java.sql.*"%>
+
 <%@include file="../conexion.jsp"%>
+
 <%
-    // Línea mágica para que los acentos y la ñ se mantengan al editar
     request.setCharacterEncoding("UTF-8");
 
-    String rol = (String) session.getAttribute("rol");
-    if (rol == null || !"INSTRUCTOR".equalsIgnoreCase(rol)) {
+    // =========================
+    // VALIDAR SESIÓN
+    // =========================
+
+    String rol =
+    (String) session.getAttribute("rol");
+
+    if(rol == null ||
+       !"INSTRUCTOR".equalsIgnoreCase(rol)){
+
         response.sendRedirect("../index.jsp");
         return;
     }
 
-    // Leer parámetros del formulario
-    String idStr = request.getParameter("id_termino");
-    String termino = request.getParameter("termino");
-    String definicion = request.getParameter("definicion");
+    // =========================
+    // OBTENER PARÁMETROS
+    // =========================
 
-    if (idStr != null && !idStr.trim().isEmpty() &&
-        termino != null && !termino.trim().isEmpty() && 
-        definicion != null && !definicion.trim().isEmpty()) {
-        try {
-            int idConcepto = Integer.parseInt(idStr);
+    String idStr =
+    request.getParameter("id_termino");
 
-            PreparedStatement ps = conexion.prepareStatement(
-                "UPDATE diccionario_ia SET termino = ?, definicion = ? WHERE id_termino = ?"
-            );
-            ps.setString(1, termino.trim());
-            ps.setString(2, definicion.trim());
-            ps.setInt(3, idConcepto);
-            ps.executeUpdate();
-            ps.close();
+    String termino =
+    request.getParameter("termino");
 
-            // Redirigir a la lista con mensaje de éxito
-            response.sendRedirect("diccionarioInstructor.jsp?msg=actualizado");
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Si hay error, redirigir al formulario de edición con mensaje
-            response.sendRedirect("editarConcepto.jsp?id=" + idStr + "&error=1");
+    String definicion =
+    request.getParameter("definicion");
+
+    // =========================
+    // VALIDAR NULOS
+    // =========================
+
+    if(idStr == null ||
+       termino == null ||
+       definicion == null){
+
+        response.sendRedirect(
+        "diccionarioInstructor.jsp");
+
+        return;
+    }
+
+    // =========================
+    // LIMPIAR ESPACIOS
+    // =========================
+
+    idStr =
+    idStr.trim();
+
+    termino =
+    termino.trim();
+
+    definicion =
+    definicion.trim();
+
+    // =========================
+    // VALIDAR VACÍOS
+    // =========================
+
+    if(idStr.isEmpty() ||
+       termino.isEmpty() ||
+       definicion.isEmpty()){
+
+        response.sendRedirect(
+        "editarConcepto.jsp?id=" +
+        idStr +
+        "&error=campos");
+
+        return;
+    }
+
+    // =========================
+    // VALIDAR ID
+    // =========================
+
+    int idConcepto = 0;
+
+    try{
+
+        idConcepto =
+        Integer.parseInt(idStr);
+
+        if(idConcepto <= 0){
+
+            response.sendRedirect(
+            "diccionarioInstructor.jsp?msg=error");
+
+            return;
         }
-    } else {
-        // Si faltan campos, redirigir al formulario de edición
-        response.sendRedirect("editarConcepto.jsp?id=" + idStr + "&error=campos");
+
+    } catch(Exception e){
+
+        response.sendRedirect(
+        "diccionarioInstructor.jsp?msg=error");
+
+        return;
+    }
+
+    // =========================
+    // VALIDAR LONGITUDES
+    // =========================
+
+    if(termino.length() > 150 ||
+       definicion.length() > 5000){
+
+        response.sendRedirect(
+        "editarConcepto.jsp?id=" +
+        idConcepto +
+        "&error=longitud");
+
+        return;
+    }
+
+    // =========================
+    // VALIDAR XSS
+    // =========================
+
+    String patronXSS =
+    "(?i).*(" +
+    "<script|" +
+    "</script>|" +
+    "javascript:|" +
+    "onload=|" +
+    "onerror=|" +
+    "<|>" +
+    ").*";
+
+    if(termino.matches(patronXSS) ||
+       definicion.matches(patronXSS)){
+
+        response.sendRedirect(
+        "editarConcepto.jsp?id=" +
+        idConcepto +
+        "&error=xss");
+
+        return;
+    }
+
+    // =========================
+    // ACTUALIZAR
+    // =========================
+
+    PreparedStatement ps = null;
+
+    try{
+
+        ps =
+        conexion.prepareStatement(
+        "UPDATE diccionario_ia " +
+        "SET termino=?, " +
+        "definicion=? " +
+        "WHERE id_termino=?"
+        );
+
+        ps.setString(1, termino);
+
+        ps.setString(2, definicion);
+
+        ps.setInt(3, idConcepto);
+
+        int filas =
+        ps.executeUpdate();
+
+        ps.close();
+
+        // =========================
+        // VALIDAR RESULTADO
+        // =========================
+
+        if(filas > 0){
+
+            response.sendRedirect(
+            "diccionarioInstructor.jsp?msg=actualizado");
+
+        } else {
+
+            response.sendRedirect(
+            "editarConcepto.jsp?id=" +
+            idConcepto +
+            "&error=general");
+        }
+
+    } catch(Exception e){
+
+        if(ps != null){
+
+            try{
+
+                ps.close();
+
+            } catch(Exception ex){}
+        }
+
+        response.sendRedirect(
+        "editarConcepto.jsp?id=" +
+        idConcepto +
+        "&error=general");
     }
 %>
