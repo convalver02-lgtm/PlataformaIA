@@ -18,15 +18,21 @@
 <body>
 
 <%
-    String correo = request.getParameter("correo");
-    String contrasena = request.getParameter("contrasena");
+    String correo = request.getParameter("correo") != null
+        ? request.getParameter("correo").trim()
+        : "";
+
+    String contrasena = request.getParameter("contrasena") != null
+        ? request.getParameter("contrasena").trim()
+        : "";
 
     // Validación básica de parámetros
-    if (correo == null || contrasena == null || correo.trim().isEmpty() || contrasena.trim().isEmpty()) {
-        response.sendRedirect("login.jsp?error=1");
-        return;
+    
+    if (correo.isEmpty() || contrasena.isEmpty()) {
+    response.sendRedirect("login.jsp?error=vacio");
+    return;
     }
-
+    
     PreparedStatement ps = null;
     ResultSet rs = null;
 
