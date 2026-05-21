@@ -26,7 +26,6 @@
     String error = request.getParameter("error");
     String msg = request.getParameter("msg");
 
-    // CONSERVAR DATOS
     String nombre = request.getParameter("nombre") != null
             ? request.getParameter("nombre")
             : "";
@@ -84,6 +83,22 @@
             width:100%;
         }
 
+        .btn-register:hover{
+            color:white;
+            opacity:0.9;
+        }
+
+        .xss-error{
+            color:red;
+            font-weight:bold;
+            margin-top:8px;
+            display:none;
+        }
+
+        .input-error{
+            border:2px solid red !important;
+        }
+
     </style>
 
 </head>
@@ -101,16 +116,22 @@
 
             <% if("campos".equals(error)){ %>
                 Todos los campos son obligatorios.
+
             <% } else if("contrasenas".equals(error)){ %>
                 Las contraseñas no coinciden.
+
             <% } else if("existe".equals(error)){ %>
                 El correo ya está registrado.
+
             <% } else if("longitud".equals(error)){ %>
                 Uno o más campos exceden el límite permitido.
+
             <% } else if("xss".equals(error)){ %>
-                Caracteres no permitidos detectados.
+                Caracteres peligrosos detectados.
+
             <% } else { %>
                 Error al registrar usuario.
+
             <% } %>
 
         </div>
@@ -159,7 +180,8 @@
 
             <!-- FORM -->
             <form action="registrarUsuario.jsp"
-                  method="post">
+                  method="post"
+                  id="formRegistro">
 
                 <!-- NOMBRE -->
                 <div class="form-group">
@@ -171,16 +193,13 @@
 
                     <input type="text"
                            name="nombre"
+                           id="nombre"
                            class="form-control"
                            required
                            maxlength="100"
                            minlength="3"
                            value="<%= nombre %>"
                            placeholder="Ejemplo: Juan Pérez">
-
-                    <small class="text-muted">
-                        Máximo 100 caracteres
-                    </small>
 
                 </div>
 
@@ -194,12 +213,18 @@
 
                     <input type="email"
                            name="correo"
+                           id="correo"
                            class="form-control"
                            required
                            maxlength="100"
                            value="<%= correo %>"
                            placeholder="usuario@correo.com">
 
+                </div>
+
+                <!-- MENSAJE XSS -->
+                <div id="mensajeXSS" class="xss-error">
+                    ⚠ Entrada potencialmente peligrosa detectada (XSS)
                 </div>
 
                 <!-- PASSWORD -->
@@ -256,6 +281,95 @@
 </div>
 
 <%@include file="includes/footer.jsp"%>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(){
+
+    const nombre =
+    document.getElementById("nombre");
+
+    const correo =
+    document.getElementById("correo");
+
+    const mensaje =
+    document.getElementById("mensajeXSS");
+
+    const formulario =
+    document.getElementById("formRegistro");
+
+    function validarXSS(valor){
+
+        const patron =
+        /<script>|<\/script>|<|>|javascript:|onerror=|onload=/gi;
+
+        return patron.test(valor);
+    }
+
+    function mostrarError(campo){
+
+        campo.classList.add("input-error");
+
+        mensaje.style.display = "block";
+    }
+
+    function limpiarError(campo){
+
+        campo.classList.remove("input-error");
+
+        if(
+            !validarXSS(nombre.value) &&
+            !validarXSS(correo.value)
+        ){
+            mensaje.style.display = "none";
+        }
+    }
+
+    nombre.addEventListener("keyup", function(){
+
+        if(validarXSS(nombre.value)){
+
+            mostrarError(nombre);
+
+        } else {
+
+            limpiarError(nombre);
+        }
+    });
+
+    correo.addEventListener("keyup", function(){
+
+        if(validarXSS(correo.value)){
+
+            mostrarError(correo);
+
+        } else {
+
+            limpiarError(correo);
+        }
+    });
+
+    // BLOQUEAR ENVÍO SI HAY XSS
+    formulario.addEventListener("submit", function(e){
+
+        if(
+            validarXSS(nombre.value) ||
+            validarXSS(correo.value)
+        ){
+
+            e.preventDefault();
+
+            mensaje.style.display = "block";
+
+            alert("Entrada peligrosa detectada.");
+
+        }
+
+    });
+
+});
+
+</script>
 
 </body>
 </html>
