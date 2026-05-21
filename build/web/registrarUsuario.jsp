@@ -5,48 +5,132 @@
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+<%@page import="java.sql.*"%>
+<%@page import="org.mindrot.jbcrypt.BCrypt"%>
+
 <%@include file="conexion.jsp"%>
+
 <%
-    request.setCharacterEncoding("UTF-8"); // Para acentos en nombre
+    request.setCharacterEncoding("UTF-8");
 
     String nombre = request.getParameter("nombre");
     String correo = request.getParameter("correo");
     String contrasena = request.getParameter("contrasena");
     String confirmar = request.getParameter("confirmar");
 
-    if (nombre != null && correo != null && contrasena != null && confirmar != null) {
-        if (!contrasena.equals(confirmar)) {
-            response.sendRedirect("rGeneral.jsp?error=contrasenas");
+    // VALIDAR NULOS
+    if(nombre == null ||
+       correo == null ||
+       contrasena == null ||
+       confirmar == null){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=campos");
+
+        return;
+    }
+
+    // LIMPIAR ESPACIOS
+    nombre = nombre.trim();
+    correo = correo.trim();
+    contrasena = contrasena.trim();
+    confirmar = confirmar.trim();
+
+    // VALIDAR VACÍOS
+    if(nombre.isEmpty() ||
+       correo.isEmpty() ||
+       contrasena.isEmpty() ||
+       confirmar.isEmpty()){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=campos");
+
+        return;
+    }
+
+    // VALIDAR LONGITUD
+    if(nombre.length() > 100 ||
+       correo.length() > 100 ||
+       contrasena.length() > 100){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=longitud");
+
+        return;
+    }
+
+    // PROTECCIÓN BÁSICA XSS
+    if(nombre.contains("<") ||
+       nombre.contains(">") ||
+       correo.contains("<") ||
+       correo.contains(">")){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=xss");
+
+        return;
+    }
+
+    // VALIDAR PASSWORDS
+    if(!contrasena.equals(confirmar)){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=contrasenas");
+
+        return;
+    }
+
+    try{
+
+        // VALIDAR EXISTENCIA
+        PreparedStatement psCheck =
+        conexion.prepareStatement(
+        "SELECT id_usuario FROM usuarios WHERE correo=?");
+
+        psCheck.setString(1, correo);
+
+        ResultSet rsCheck =
+        psCheck.executeQuery();
+
+        if(rsCheck.next()){
+
+            response.sendRedirect(
+            "rGeneral.jsp?error=existe");
+
             return;
         }
 
-        try {
-            // Verificar si el correo ya existe
-            PreparedStatement psCheck = conexion.prepareStatement("SELECT id_usuario FROM usuarios WHERE correo = ?");
-            psCheck.setString(1, correo.trim());
-            ResultSet rsCheck = psCheck.executeQuery();
-            if (rsCheck.next()) {
-                response.sendRedirect("rGeneral.jsp?error=existe");
-                return;
-            }
-            rsCheck.close();
-            psCheck.close();
+        rsCheck.close();
+        psCheck.close();
 
-            // Insertar nuevo usuario como ESTUDIANTE por defecto
-            PreparedStatement ps = conexion.prepareStatement(
-                "INSERT INTO usuarios (nombre, correo, contrasena, rol) VALUES (?, ?, ?, 'ESTUDIANTE')"
-            );
-            ps.setString(1, nombre.trim());
-            ps.setString(2, correo.trim());
-            ps.setString(3, contrasena); // En producción deberías hashear la contraseña, pero por ahora simple
-            ps.executeUpdate();
-            ps.close();
+        // INSERTAR
+        PreparedStatement ps =
+        conexion.prepareStatement(
+        "INSERT INTO usuarios(nombre, correo, contrasena, rol) " +
+        "VALUES(?, ?, ?, 'ESTUDIANTE')"
+        );
 
-            response.sendRedirect("login.jsp?msg=registrado");
-        } catch (Exception e) {
-            response.sendRedirect("rGeneral.jsp?error=general");
-        }
-    } else {
-        response.sendRedirect("rGeneral.jsp");
+        ps.setString(1, nombre);
+        ps.setString(2, correo);
+
+        // BCRYPT
+        
+        String passwordHash =
+        BCrypt.hashpw(contrasena, BCrypt.gensalt());
+
+        ps.setString(3, passwordHash);
+
+        ps.executeUpdate();
+
+        ps.close();
+
+        response.sendRedirect(
+        "login.jsp?msg=registrado");
+
+    } catch(Exception e){
+
+        response.sendRedirect(
+        "rGeneral.jsp?error=general");
     }
 %>

@@ -6,7 +6,9 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page session="true"%>
+
 <%@page import="java.sql.*"%>
+<%@page import="org.mindrot.jbcrypt.BCrypt"%>
 
 <%@include file="conexion.jsp"%>
 
@@ -16,89 +18,83 @@
     String correo = request.getParameter("correo");
     String contrasena = request.getParameter("contrasena");
 
-    // VALIDAR CAMPOS VACÍOS
-    if(correo == null || contrasena == null ||
+    if(correo == null ||
+       contrasena == null ||
        correo.trim().isEmpty() ||
        contrasena.trim().isEmpty()){
 
         response.sendRedirect(
-            "login.jsp?error=campos&correo=" + correo
-        );
+        "login.jsp?error=campos");
+
         return;
     }
 
-    // VALIDAR LONGITUD
-    if(correo.length() > 100 ||
-       contrasena.length() > 100){
-
-        response.sendRedirect(
-            "login.jsp?error=longitud&correo=" + correo
-        );
-        return;
-    }
-
-    // PROTECCIÓN BÁSICA XSS
-    correo = correo.replaceAll("<", "")
-                   .replaceAll(">", "");
+    correo = correo.trim();
+    contrasena = contrasena.trim();
 
     try{
 
+        // BUSCAR USUARIO SOLO POR CORREO
         String sql =
-        "SELECT id_usuario, nombre, rol " +
-        "FROM usuarios " +
-        "WHERE correo=? AND contrasena=?";
+        "SELECT id_usuario, nombre, rol, contrasena " +
+        "FROM usuarios WHERE correo=?";
 
         PreparedStatement ps =
         conexion.prepareStatement(sql);
 
-        ps.setString(1, correo.trim());
-        ps.setString(2, contrasena.trim());
+        ps.setString(1, correo);
 
         ResultSet rs = ps.executeQuery();
 
         if(rs.next()){
 
-            session.setAttribute(
+            String hashGuardado =
+            rs.getString("contrasena");
+
+            // VALIDAR PASSWORD BCRYPT
+            if(BCrypt.checkpw(contrasena, hashGuardado)){
+
+                session.setAttribute(
                 "id_usuario",
-                rs.getInt("id_usuario")
-            );
+                rs.getInt("id_usuario"));
 
-            session.setAttribute(
+                session.setAttribute(
                 "usuario",
-                rs.getString("nombre")
-            );
+                rs.getString("nombre"));
 
-            session.setAttribute(
+                session.setAttribute(
                 "rol",
-                rs.getString("rol")
-            );
+                rs.getString("rol"));
 
-            String rol = rs.getString("rol");
+                String rol =
+                rs.getString("rol");
 
-            if("ADMIN".equalsIgnoreCase(rol)){
+                if("ADMIN".equalsIgnoreCase(rol)){
 
-                response.sendRedirect(
-                    "admin/panelAdmin.jsp"
-                );
+                    response.sendRedirect(
+                    "admin/panelAdmin.jsp");
 
-            } else if("INSTRUCTOR".equalsIgnoreCase(rol)){
+                } else if("INSTRUCTOR".equalsIgnoreCase(rol)){
 
-                response.sendRedirect(
-                    "instructor/panelInstructor.jsp"
-                );
+                    response.sendRedirect(
+                    "instructor/panelInstructor.jsp");
+
+                } else {
+
+                    response.sendRedirect(
+                    "alumno/panelAlumno.jsp");
+                }
 
             } else {
 
                 response.sendRedirect(
-                    "alumno/panelAlumno.jsp"
-                );
+                "login.jsp?error=1");
             }
 
         } else {
 
             response.sendRedirect(
-                "login.jsp?error=1&correo=" + correo
-            );
+            "login.jsp?error=1");
         }
 
         rs.close();
@@ -106,8 +102,6 @@
 
     } catch(Exception e){
 
-        response.sendRedirect(
-            "login.jsp?error=general"
-        );
+        out.println(e.getMessage());
     }
 %>
